@@ -5,9 +5,16 @@ from importlib.resources import files
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.fields import Integer, Scope
+try:
+    from xblock.utils.publish_event import PublishEventMixin  # pylint: disable=ungrouped-imports
+    from xblock.utils.resources import ResourceLoader  # pylint: disable=ungrouped-imports
+except ModuleNotFoundError:  # For backward compatibility with releases older than Quince.
+    from xblockutils.publish_event import PublishEventMixin
+    from xblockutils.resources import ResourceLoader
 
 
 class OpenDNDXBlock(XBlock):
+    loader = ResourceLoader(__name__)
     """
     TO-DO: document what your XBlock does.
     """
@@ -31,12 +38,14 @@ class OpenDNDXBlock(XBlock):
         The primary view of the OpenDNDXBlock, shown to students
         when viewing courses.
         """
-        html = self.resource_string("static/html/opendndxblock.html")
-        frag = Fragment(html.format(self=self))
-        frag.add_css(self.resource_string("static/css/opendndxblock.css"))
-        frag.add_javascript(self.resource_string("static/js/src/opendndxblock.js"))
-        frag.initialize_js('OpenDNDXBlock')
-        return frag
+        fragment = Fragment()
+        fragment.add_content(self.loader.render_django_template("static/html/opendndxblock.html", context={
+            "self": self,
+            "script": self.resource_string("static/js/src/init.js")
+        }))
+        fragment.add_javascript(self.resource_string("static/js/src/init.js"))
+        fragment.initialize_js('OpenDNDXBlock')
+        return fragment
 
     # TO-DO: change this handler to perform your own actions.  You may need more
     # than one handler, or you may not need any handlers at all.
