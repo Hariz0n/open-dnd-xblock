@@ -1,0 +1,9 @@
+/* CSS for OpenDNDXBlock */
+
+.opendndxblock_block .count {
+    font-weight: bold;
+}
+
+.opendndxblock_block p {
+    cursor: pointer;
+}
