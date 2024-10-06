@@ -28,7 +28,20 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
+
+    /* Our css variables */
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+    --gray: 0 0% 64%;
+    --light-gray: 0 2% 84%;
+
+    --green: 111 100% 29%;
+    --light-green: 111 100% 96%;
+    --red: 0 96% 68%;
+    --light-red: 0 100% 96%;
+    --blue: 199 79% 34%;
+    --light-blue: 199 100% 92%;
   }
   .dark {
     --background: 0 0% 3.9%;

@@ -1,0 +1,1 @@
+export const TASK_FETCH_KEY = 'TASK';

@@ -60,6 +60,10 @@ class OpenDNDXBlock(XBlock):
 
         self.count += 1
         return {"count": self.count}
+    
+    @XBlock.json_handler
+    def getTask(self, data, suffix=''):
+        return {"title": 'Задание', 'description': 'Описание 2'}
 
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.

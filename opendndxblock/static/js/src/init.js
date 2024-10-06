@@ -52,10 +52,8 @@ function OpenDNDXBlock(runtime, element) {
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                console.log({entry})
                 for (const bbSize of entry.borderBoxSize) {
-                    console.log({bbSize})
-                    node.height = bbSize.blockSize
+                    node.style.height = `${bbSize.blockSize}px`
 
                 }
             }
@@ -64,7 +62,7 @@ function OpenDNDXBlock(runtime, element) {
         observer.observe(rootNode)
     }
 
-    $(function ($) {
+    $(function () {
         initAppData(runtime, element)
         initResizeObserver()
     });
