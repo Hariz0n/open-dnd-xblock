@@ -41,7 +41,8 @@ class OpenDNDXBlock(XBlock):
         fragment = Fragment()
         fragment.add_content(self.loader.render_django_template("static/html/opendndxblock.html", context={
             "self": self,
-            "script": self.resource_string("static/js/src/init.js")
+            "script": self.resource_string("static/js/src/index.js"),
+            "styles": self.resource_string("static/css/styles.css")
         }))
         fragment.add_javascript(self.resource_string("static/js/src/init.js"))
         fragment.initialize_js('OpenDNDXBlock')
