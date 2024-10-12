@@ -1,4 +1,5 @@
 export { cn } from "./libs/cn";
+export { swapKeyAndValue } from "./libs/swapKeyAndValue";
 
 export { Button, buttonVariants } from "./ui/button";
 export { Chip } from "./ui/chip";

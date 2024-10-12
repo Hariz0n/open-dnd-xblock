@@ -21,19 +21,21 @@ function OpenDNDXBlock(runtime, element) {
 
     function initAppData(runtime, element) {
         const node = getNode()
-        
+
         if (!node) {
             throw new Error('App init error (node not found)')
         }
 
-        /** @type {((runtime, element) => void) | null} */
-        const callback = node.contentWindow.initApp;
+        node.addEventListener('load', () => {
+            /** @type {((runtime, element) => void) | null} */
+            const callback = node.contentWindow.initApp;
 
-        if (!callback) {
-            throw new Error('App init error (init callback not found)')
-        }
+            if (!callback) {
+                throw new Error('App init error (init callback not found)')
+            }
 
-        callback(runtime, element)
+            callback(runtime, element)
+        })
     }
 
     function initResizeObserver() {
@@ -43,23 +45,25 @@ function OpenDNDXBlock(runtime, element) {
             return
         }
 
-        /** @type { HTMLDivElement | null } */
-        const rootNode = node.contentDocument.querySelector('#root')
+        node.addEventListener('load', () => {
+            /** @type { HTMLDivElement | null } */
+            const rootNode = node.contentDocument.querySelector('#root')
 
-        if (!rootNode) {
-            return;
-        }
-
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                for (const bbSize of entry.borderBoxSize) {
-                    node.style.height = `${bbSize.blockSize}px`
-
-                }
+            if (!rootNode) {
+                return;
             }
-        })
 
-        observer.observe(rootNode)
+            const observer = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    for (const bbSize of entry.borderBoxSize) {
+                        node.style.height = `${bbSize.blockSize}px`
+
+                    }
+                }
+            })
+
+            observer.observe(rootNode)
+        })
     }
 
     $(function () {

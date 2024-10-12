@@ -4,7 +4,8 @@ from importlib.resources import files
 
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
-from xblock.fields import Integer, Scope
+from typing import TypedDict
+from xblock.fields import Integer, Scope, String, List
 try:
     from xblock.utils.publish_event import PublishEventMixin  # pylint: disable=ungrouped-imports
     from xblock.utils.resources import ResourceLoader  # pylint: disable=ungrouped-imports
@@ -12,21 +13,67 @@ except ModuleNotFoundError:  # For backward compatibility with releases older th
     from xblockutils.publish_event import PublishEventMixin
     from xblockutils.resources import ResourceLoader
 
+from xblock.utils.studio_editable import StudioEditableXBlockMixin
 
-class OpenDNDXBlock(XBlock):
+class AreaType(TypedDict):
+    id: str;
+    x: str;
+    y: str;
+    height: str;
+    width: str;
+
+class VariantType(TypedDict):
+    id: str;
+    badgeChar: str;
+    badgeTitle: str;
+    text: str;
+
+
+class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin):
     loader = ResourceLoader(__name__)
     """
     TO-DO: document what your XBlock does.
     """
 
-    # Fields are defined on the class.  You can access them in your code as
-    # self.<fieldname>.
-
-    # TO-DO: delete count, and define your own fields.
-    count = Integer(
-        default=0, scope=Scope.user_state,
-        help="A simple counter, to show something happening",
+    title = String(display_name='Title', scope=Scope.content, default='Задание')
+    description = String(display_name='Description', scope=Scope.content, default='Описание')
+    imageUrl = String(display_name='Image URL', scope=Scope.content, default='https://placehold.co/1280x920')
+    areas = List(
+        display_name='Areas',
+        scope=Scope.content,
+        default=[
+            AreaType(
+                id='top-block',
+                x='5%',
+                y='5%',
+                height='25%',
+                width='25%'
+            ),
+            AreaType(
+                id='bottom-block',
+                x='40%',
+                y='5%',
+                height='25%',
+                width='25%'
+            ),
+        ],
     )
+    variants = List(
+        display_name='Variants',
+        scope=Scope.content, 
+        default=[
+            VariantType(
+                id='header',
+                badgeChar='1',
+                badgeTitle='Header',
+                text='Текст'
+            )
+        ],
+        enforce_type=True, 
+        values=VariantType
+    )
+
+    editable_fields = ('title', 'description', 'imageUrl')
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -63,7 +110,15 @@ class OpenDNDXBlock(XBlock):
     
     @XBlock.json_handler
     def getTask(self, data, suffix=''):
-        return {"title": 'Задание', 'description': 'Описание 2'}
+        return {
+            "title": self.title, 
+            'description': self.description,
+            "dropzone": {
+                'imageUrl': self.imageUrl,
+                'areas': self.areas
+            },
+            'variants': self.variants
+            }
 
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.

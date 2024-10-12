@@ -7,12 +7,13 @@ import {
 } from "@/entities/Task";
 import { Variant } from "@/entities/Task";
 import { taskFormSchemaType } from "@/entities/Task/hooks/useTaskForm";
-import { ActionChip } from "@/features/ActionChip";
-import { Button, Chip } from "@/shared";
+import { Draggable } from "@/features/Draggable";
+import { Droppable } from "@/features/Droppable";
+import { Button, Chip, swapKeyAndValue } from "@/shared";
 import {
   defaultDropAnimation,
-  defaultDropAnimationSideEffects,
   DndContext,
+  DragEndEvent,
   DragOverlay,
   DragStartEvent,
 } from "@dnd-kit/core";
@@ -23,17 +24,42 @@ import { Controller, FormProvider, SubmitHandler } from "react-hook-form";
 export const ActionZone: FC = () => {
   const { data } = useTask();
   const [activeVariant, setActiveVariant] = useState<Variant | null>(null);
+  const [isAnimating, setIsAnimating] = useState<string | null>(null);
+
   const form = useTaskForm({
     values: data?.dropzone.areas.reduce((prev, current) => {
       return { ...prev, [current.id]: null };
     }, {}),
   });
 
+  const answers = form.getValues();
+  const reversedAnswer = swapKeyAndValue(answers);
+
   const handleDragStart = (e: DragStartEvent) => {
     setActiveVariant(e.active.data.current?.variant || null);
+    setIsAnimating(e.active.id as string);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: DragEndEvent) => {
+    const values = form.getValues();
+    const field = Object.entries(values).find(([, value]) => {
+      return value === e.active.id;
+    });
+
+    if (!e.over) {
+      if (field) {
+        form.setValue(field[0], null);
+      }
+    }
+
+    if (e.over) {
+      if (field) {
+        form.setValue(field[0], null);
+      }
+
+      form.setValue(e.over.id as string, e.active.id as string);
+    }
+
     setActiveVariant(null);
   };
 
@@ -54,37 +80,73 @@ export const ActionZone: FC = () => {
                 key={area.id}
                 name={area.id}
                 control={form.control}
-                render={({ field }) => (
-                  <TaskArea key={area.id} area={area}>
-                    {field.value && (
-                      <ActionChip
-                        variant={
-                          data.variants.find((v) => v.id === field.value)!
-                        }
+                render={({ field }) => {
+                  const variant = data.variants.find(
+                    (v) => v.id === field.value
+                  );
+                  return (
+                    <TaskArea area={area}>
+                      <Droppable
+                        className="absolute inset-0 rounded-xl -z-10"
+                        id={area.id}
                       />
-                    )}
-                  </TaskArea>
-                )}
+                      {variant && (
+                        <Draggable
+                          id={variant.id}
+                          data={{ variant }}
+                          className="rounded-lg"
+                          renderChild={({ isDragging }) => (
+                            <Chip
+                              disabled={
+                                (activeVariant?.id === variant.id &&
+                                  isDragging) ||
+                                isAnimating === variant.id
+                              }
+                              char={variant.badgeChar}
+                            />
+                          )}
+                        />
+                      )}
+                    </TaskArea>
+                  );
+                }}
               />
             ))}
           </TaskImage>
-          <ul>
-            {data?.variants.map((variant) => (
-              <TaskVariant key={variant.id} variant={variant} />
-            ))}
+          <ul className="flex flex-col gap-4">
+            {data?.variants.map((variant) => {
+              return (
+                <TaskVariant key={variant.id} variant={variant}>
+                  {reversedAnswer[variant.id] ? (
+                    <Chip disabled char={variant.badgeChar} />
+                  ) : (
+                    <Draggable
+                      id={variant.id}
+                      data={{ variant }}
+                      className="rounded-lg"
+                      renderChild={({ isDragging }) => (
+                        <Chip
+                          disabled={
+                            (activeVariant?.id === variant.id && isDragging) ||
+                            isAnimating === variant.id
+                          }
+                          char={variant.badgeChar}
+                        />
+                      )}
+                    />
+                  )}
+                </TaskVariant>
+              );
+            })}
           </ul>
           <DragOverlay
             modifiers={[restrictToWindowEdges]}
             dropAnimation={{
               ...defaultDropAnimation,
-              sideEffects: defaultDropAnimationSideEffects({
-                className: {
-                  active: "bg-our-gray",
-                },
-                styles: {
-                  active: {},
-                },
-              }),
+              duration: 350,
+              sideEffects: () => {
+                return () => setIsAnimating(null);
+              },
             }}
           >
             {activeVariant ? <Chip char={activeVariant.badgeChar} /> : null}
