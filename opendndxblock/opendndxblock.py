@@ -5,7 +5,7 @@ from importlib.resources import files
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from typing import TypedDict
-from xblock.fields import Integer, Scope, String, List
+from xblock.fields import Integer, Scope, String, List, Float
 try:
     from xblock.utils.publish_event import PublishEventMixin  # pylint: disable=ungrouped-imports
     from xblock.utils.resources import ResourceLoader  # pylint: disable=ungrouped-imports
@@ -14,6 +14,7 @@ except ModuleNotFoundError:  # For backward compatibility with releases older th
     from xblockutils.resources import ResourceLoader
 
 from xblock.utils.studio_editable import StudioEditableXBlockMixin
+from xblock.scorable import ScorableXBlockMixin, Score
 
 class AreaType(TypedDict):
     id: str;
@@ -21,6 +22,7 @@ class AreaType(TypedDict):
     y: str;
     height: str;
     width: str;
+    variant: str;
 
 class VariantType(TypedDict):
     id: str;
@@ -29,7 +31,7 @@ class VariantType(TypedDict):
     text: str;
 
 
-class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin):
+class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     loader = ResourceLoader(__name__)
     """
     TO-DO: document what your XBlock does.
@@ -47,14 +49,16 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin):
                 x='5%',
                 y='5%',
                 height='25%',
-                width='25%'
+                width='25%',
+                variant='header'
             ),
             AreaType(
                 id='bottom-block',
                 x='40%',
                 y='5%',
                 height='25%',
-                width='25%'
+                width='25%',
+                variant='footer'
             ),
         ],
     )
@@ -67,13 +71,19 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin):
                 badgeChar='1',
                 badgeTitle='Header',
                 text='Текст'
-            )
+            ),
+            VariantType(
+                id='footer',
+                badgeChar='2',
+                badgeTitle='Footer',
+                text='Текст'
+            ),
         ],
         enforce_type=True, 
         values=VariantType
     )
 
-    editable_fields = ('title', 'description', 'imageUrl')
+    editable_fields = ('title', 'description', 'imageUrl', 'weight')
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -137,3 +147,53 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin):
                 </vertical_demo>
              """),
         ]
+    
+    weight = Integer(
+        display_name='Weight',
+        help='This assigns an integer value representing',
+        default=0,
+        values={'min': 1},
+        scope=Scope.settings,
+    )
+
+    score = Float(
+        default=0.0,
+        scope=Scope.user_state,
+    )
+
+    def max_score(self):
+        """
+        Return the maximum possible score
+        """
+        return self.weight
+    
+    def get_score(self):
+        """
+        Get the problem score
+        """
+        score = None
+        if self.has_submitted_answer():
+            score = self.score
+        return score
+    
+    def set_score(self, score):
+        """
+        Update the problem score
+        """
+        self.score = score.raw_earned
+        return self
+    
+    def has_submitted_answer(self):
+        """
+        Check if an answer has been submitted for this problem
+        """
+        has_submitted = False
+        if self.fields['score'].is_set_on(self):
+            has_submitted = True
+        return has_submitted
+    
+    def calculate_score(self):
+        """
+        Calculate user score, based on current answer
+        """
+        return Score(raw_earned=1.0, raw_possible=1.0)

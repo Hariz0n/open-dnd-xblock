@@ -26,7 +26,7 @@ function OpenDNDXBlock(runtime, element) {
             throw new Error('App init error (node not found)')
         }
 
-        node.addEventListener('load', () => {
+        setTimeout(() => {
             /** @type {((runtime, element) => void) | null} */
             const callback = node.contentWindow.initApp;
 
@@ -35,7 +35,7 @@ function OpenDNDXBlock(runtime, element) {
             }
 
             callback(runtime, element)
-        })
+        }, 500)
     }
 
     function initResizeObserver() {
@@ -45,7 +45,7 @@ function OpenDNDXBlock(runtime, element) {
             return
         }
 
-        node.addEventListener('load', () => {
+        setTimeout(() => {
             /** @type { HTMLDivElement | null } */
             const rootNode = node.contentDocument.querySelector('#root')
 
@@ -60,7 +60,7 @@ function OpenDNDXBlock(runtime, element) {
 
                     }
                 }
-            })
+            }, 500)
 
             observer.observe(rootNode)
         })
