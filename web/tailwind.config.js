@@ -62,7 +62,8 @@ export default {
 					green: "hsl(var(--green))",
 					"light-green": "hsl(var(--light-green))",
 					blue: "hsl(var(--blue))",
-					"light-blue": "hsl(var(--light-blue))"
+					"light-blue": "hsl(var(--light-blue))",
+					"dark-blue": "hsl(var(--dark-blue))"
 				}
 			}
 		}

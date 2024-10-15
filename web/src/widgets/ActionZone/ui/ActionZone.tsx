@@ -2,6 +2,7 @@ import {
   TaskArea,
   TaskImage,
   TaskVariant,
+  useCheckTask,
   useTask,
   useTaskForm,
 } from "@/entities/Task";
@@ -18,24 +19,28 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { Controller, FormProvider, SubmitHandler } from "react-hook-form";
 
 export const ActionZone: FC = () => {
   const { data } = useTask();
+  const mutation = useCheckTask();
   const [activeVariant, setActiveVariant] = useState<Variant | null>(null);
   const [isAnimating, setIsAnimating] = useState<string | null>(null);
 
-  const form = useTaskForm({
-    values: data?.dropzone.areas.reduce((prev, current) => {
-      return { ...prev, [current.id]: null };
-    }, {}),
-  });
+  const form = useTaskForm({});
+
+  useEffect(() => {
+    if (data?.previous_answers) {
+      form.reset(data.previous_answers, { keepErrors: true });
+    }
+  }, [data, form]);
 
   const answers = form.getValues();
   const reversedAnswer = swapKeyAndValue(answers);
 
   const handleDragStart = (e: DragStartEvent) => {
+    form.clearErrors(reversedAnswer[e.active.id as string]);
     setActiveVariant(e.active.data.current?.variant || null);
     setIsAnimating(e.active.id as string);
   };
@@ -48,24 +53,39 @@ export const ActionZone: FC = () => {
 
     if (!e.over) {
       if (field) {
-        form.setValue(field[0], null);
+        form.setValue(field[0], null, { shouldValidate: true });
+        form.trigger(field[0]);
       }
     }
 
     if (e.over) {
       if (field) {
-        form.setValue(field[0], null);
+        form.setValue(field[0], null, { shouldValidate: true });
+        form.trigger(field[0]);
       }
 
-      form.setValue(e.over.id as string, e.active.id as string);
+      form.setValue(e.over.id as string, e.active.id as string, {
+        shouldValidate: true,
+      });
+      form.trigger([e.over.id as string]);
     }
 
     setActiveVariant(null);
   };
 
-  const onSubmitHandler: SubmitHandler<taskFormSchemaType> = (data) => {
-    console.log({ data });
+  const onSubmitHandler: SubmitHandler<taskFormSchemaType> = async (data) => {
+    const result = await mutation.mutateAsync(data);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { score, ...fields } = result;
+    for (const fieldKey in fields) {
+      if (!fields[fieldKey]) {
+        form.setError(fieldKey, {});
+      }
+    }
   };
+
+  console.log(form.formState.errors);
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -80,12 +100,12 @@ export const ActionZone: FC = () => {
                 key={area.id}
                 name={area.id}
                 control={form.control}
-                render={({ field }) => {
+                render={({ field, formState }) => {
                   const variant = data.variants.find(
                     (v) => v.id === field.value
                   );
                   return (
-                    <TaskArea area={area}>
+                    <TaskArea isError={!!formState.errors[area.id]} area={area}>
                       <Droppable
                         className="absolute inset-0 rounded-xl -z-10"
                         id={area.id}
@@ -97,6 +117,7 @@ export const ActionZone: FC = () => {
                           className="rounded-lg"
                           renderChild={({ isDragging }) => (
                             <Chip
+                              isError={!!formState.errors[area.id]}
                               disabled={
                                 (activeVariant?.id === variant.id &&
                                   isDragging) ||
@@ -115,10 +136,17 @@ export const ActionZone: FC = () => {
           </TaskImage>
           <ul className="flex flex-col gap-4">
             {data?.variants.map((variant) => {
+              const area = reversedAnswer[variant.id] as string | undefined;
+              const isError = Boolean(area && form.formState.errors[area]);
+
               return (
-                <TaskVariant key={variant.id} variant={variant}>
+                <TaskVariant
+                  isError={isError}
+                  key={variant.id}
+                  variant={variant}
+                >
                   {reversedAnswer[variant.id] ? (
-                    <Chip disabled char={variant.badgeChar} />
+                    <Chip isError={isError} disabled char={variant.badgeChar} />
                   ) : (
                     <Draggable
                       id={variant.id}
@@ -126,6 +154,7 @@ export const ActionZone: FC = () => {
                       className="rounded-lg"
                       renderChild={({ isDragging }) => (
                         <Chip
+                          isError={isError}
                           disabled={
                             (activeVariant?.id === variant.id && isDragging) ||
                             isAnimating === variant.id
@@ -151,7 +180,24 @@ export const ActionZone: FC = () => {
           >
             {activeVariant ? <Chip char={activeVariant.badgeChar} /> : null}
           </DragOverlay>
-          <Button className="self-end">Отправить</Button>
+          {Boolean(data?.max_attempts) && (
+            <div className="flex items-center justify-end font-bold text-sm">
+              Попытка {data?.attempts} из {data?.max_attempts}
+            </div>
+          )}
+          <Button
+            disabled={
+              (data &&
+                Number.isFinite(data.attempts) &&
+                Number.isFinite(data.max_attempts) &&
+                (data.attempts as number) >= (data.max_attempts as number)) ||
+              form.formState.isSubmitting ||
+              !Object.values(form.getValues()).some((v) => !!v)
+            }
+            className="self-end"
+          >
+            Отправить
+          </Button>
         </form>
       </FormProvider>
     </DndContext>

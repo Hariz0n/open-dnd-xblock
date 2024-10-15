@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form"
 
 export type taskFormSchemaType = {
-  [areaKey: string]: string | null
+  [areaKey: string]: string | null;
 }
 
 type useTaskFormProps = {

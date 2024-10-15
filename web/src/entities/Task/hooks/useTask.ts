@@ -1,7 +1,7 @@
 import { useXBlock } from "@/entities/XBlock"
 import { useQuery } from "@tanstack/react-query";
 import { TASK_FETCH_KEY } from "../libs/constants";
-import { getTaskFetcher } from "../libs/getTaskFetcher";
+import { getTaskFetcher } from "../api/getTaskFetcher";
 import { useBaseAxiosApi } from "@/shared/hooks/useBaseAxiosApi";
 import { useMemo } from "react";
 

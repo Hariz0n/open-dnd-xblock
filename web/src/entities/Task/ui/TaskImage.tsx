@@ -9,7 +9,7 @@ export const TaskImage: FC<TaskImageProps> = ({ children, className, ...props })
 
   return <div className={cn("w-full rounded-2xl overflow-hidden relative", !data && 'aspect-video', className)} {...props}>
     {data && <>
-      <img src={data.dropzone.imageUrl} alt="" />
+      <img src={data.dropzone.imageUrl} className="w-full" alt="" />
       {children}
     </>}
   </div>

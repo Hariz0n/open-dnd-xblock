@@ -60,10 +60,10 @@ function OpenDNDXBlock(runtime, element) {
 
                     }
                 }
-            }, 500)
+            })
 
             observer.observe(rootNode)
-        })
+        }, 500)
     }
 
     $(function () {

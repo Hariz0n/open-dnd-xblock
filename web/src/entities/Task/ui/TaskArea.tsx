@@ -1,11 +1,13 @@
 import { CSSProperties, FC, PropsWithChildren } from "react";
 import { Area } from "../types/AreaType";
+import { cn } from "@/shared";
 
 type TaskAreaProps = PropsWithChildren & {
   area: Area;
+  isError?: boolean;
 };
 
-export const TaskArea: FC<TaskAreaProps> = ({ area, children }) => {
+export const TaskArea: FC<TaskAreaProps> = ({ area, children, isError }) => {
   const styles = {
     height: area.width,
     width: area.width,
@@ -15,7 +17,7 @@ export const TaskArea: FC<TaskAreaProps> = ({ area, children }) => {
 
   return (
     <div
-      className="p-2 rounded-xl bg-our-blue/20 absolute border border-dashed border-our-blue"
+      className={cn("p-2 rounded-xl bg-our-blue/20 absolute border border-dashed border-our-blue transition-colors", isError && 'bg-our-red/20 border-our-red')}
       style={styles}
     >
       {children}
