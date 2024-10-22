@@ -31,6 +31,7 @@ setup(
         'opendndxblock',
     ],
     install_requires=[
+        'edx-bulk-grades',
         'XBlock',
     ],
     entry_points={

@@ -15,7 +15,7 @@ function OpenDNDXBlock(runtime, element) {
             return _element
         }
 
-        _element = document.querySelector('[data-open-dnd]')
+        _element = (element[0] || element).querySelector('[data-open-dnd]')
         return _element;
     }
 

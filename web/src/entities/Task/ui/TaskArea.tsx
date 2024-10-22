@@ -5,9 +5,10 @@ import { cn } from "@/shared";
 type TaskAreaProps = PropsWithChildren & {
   area: Area;
   isError?: boolean;
+  isGood?: boolean;
 };
 
-export const TaskArea: FC<TaskAreaProps> = ({ area, children, isError }) => {
+export const TaskArea: FC<TaskAreaProps> = ({ area, children, isError, isGood }) => {
   const styles = {
     height: area.width,
     width: area.width,
@@ -17,7 +18,11 @@ export const TaskArea: FC<TaskAreaProps> = ({ area, children, isError }) => {
 
   return (
     <div
-      className={cn("p-2 rounded-xl bg-our-blue/20 absolute border border-dashed border-our-blue transition-colors", isError && 'bg-our-red/20 border-our-red')}
+      className={cn(
+        "p-2 rounded-xl bg-our-blue/20 absolute border border-dashed border-our-blue transition-colors",
+        isError && "bg-our-red/20 border-our-red",
+        isGood && "bg-our-green/20 border-our-green"
+      )}
       style={styles}
     >
       {children}

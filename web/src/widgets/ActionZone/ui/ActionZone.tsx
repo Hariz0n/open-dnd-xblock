@@ -27,22 +27,25 @@ export const ActionZone: FC = () => {
   const mutation = useCheckTask();
   const [activeVariant, setActiveVariant] = useState<Variant | null>(null);
   const [isAnimating, setIsAnimating] = useState<string | null>(null);
-
-  const form = useTaskForm({});
+  const [verdict, setVerdict] = useState<Record<string, boolean> | null>(null);
 
   useEffect(() => {
-    if (data?.previous_answers) {
-      form.reset(data.previous_answers, { keepErrors: true });
+    if (data) {
+      setVerdict(data.previous_verdict);
     }
-  }, [data, form]);
+  }, [data]);
+
+  const form = useTaskForm({
+    values: data?.previous_answers,
+  });
 
   const answers = form.getValues();
   const reversedAnswer = swapKeyAndValue(answers);
 
   const handleDragStart = (e: DragStartEvent) => {
-    form.clearErrors(reversedAnswer[e.active.id as string]);
     setActiveVariant(e.active.data.current?.variant || null);
     setIsAnimating(e.active.id as string);
+    setVerdict(null);
   };
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -78,14 +81,8 @@ export const ActionZone: FC = () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { score, ...fields } = result;
-    for (const fieldKey in fields) {
-      if (!fields[fieldKey]) {
-        form.setError(fieldKey, {});
-      }
-    }
+    setVerdict(fields);
   };
-
-  console.log(form.formState.errors);
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -100,12 +97,24 @@ export const ActionZone: FC = () => {
                 key={area.id}
                 name={area.id}
                 control={form.control}
-                render={({ field, formState }) => {
+                render={({ field }) => {
                   const variant = data.variants.find(
                     (v) => v.id === field.value
                   );
                   return (
-                    <TaskArea isError={!!formState.errors[area.id]} area={area}>
+                    <TaskArea
+                      isError={
+                        !!verdict &&
+                        typeof verdict[area.id] === "boolean" &&
+                        !verdict[area.id]
+                      }
+                      isGood={
+                        !!verdict &&
+                        typeof verdict[area.id] === "boolean" &&
+                        verdict[area.id]
+                      }
+                      area={area}
+                    >
                       <Droppable
                         className="absolute inset-0 rounded-xl -z-10"
                         id={area.id}
@@ -117,7 +126,16 @@ export const ActionZone: FC = () => {
                           className="rounded-lg"
                           renderChild={({ isDragging }) => (
                             <Chip
-                              isError={!!formState.errors[area.id]}
+                              isError={
+                                !!verdict &&
+                                typeof verdict[area.id] === "boolean" &&
+                                !verdict[area.id]
+                              }
+                              isGood={
+                                !!verdict &&
+                                typeof verdict[area.id] === "boolean" &&
+                                verdict[area.id]
+                              }
                               disabled={
                                 (activeVariant?.id === variant.id &&
                                   isDragging) ||
@@ -137,16 +155,18 @@ export const ActionZone: FC = () => {
           <ul className="flex flex-col gap-4">
             {data?.variants.map((variant) => {
               const area = reversedAnswer[variant.id] as string | undefined;
-              const isError = Boolean(area && form.formState.errors[area]);
+              const isError = Boolean(area && verdict && typeof verdict[area] === 'boolean' && !verdict[area]);
+              const isGood = Boolean(area && verdict && typeof verdict[area] === 'boolean' && verdict[area]);
 
               return (
                 <TaskVariant
                   isError={isError}
+                  isGood={isGood}
                   key={variant.id}
                   variant={variant}
                 >
                   {reversedAnswer[variant.id] ? (
-                    <Chip isError={isError} disabled char={variant.badgeChar} />
+                    <Chip isError={isError} isGood={isGood} disabled char={variant.badgeChar} />
                   ) : (
                     <Draggable
                       id={variant.id}
@@ -155,6 +175,7 @@ export const ActionZone: FC = () => {
                       renderChild={({ isDragging }) => (
                         <Chip
                           isError={isError}
+                          isGood={isGood}
                           disabled={
                             (activeVariant?.id === variant.id && isDragging) ||
                             isAnimating === variant.id

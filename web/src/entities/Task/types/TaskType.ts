@@ -9,4 +9,5 @@ export type Task = {
   attempts: number | null;
   max_attempts: number | null;
   previous_answers: Record<string, string | null>
+  previous_verdict: Record<string, boolean> | null
 }

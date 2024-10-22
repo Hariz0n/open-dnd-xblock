@@ -4,6 +4,7 @@ from xblock.core import XBlock
 from typing import TypedDict
 from xblock.fields import Integer, Scope, String, List, Float, Dict, Boolean
 from .utils import _
+import json
 
 try:
     from xblock.utils.publish_event import PublishEventMixin  # pylint: disable=ungrouped-imports
@@ -31,7 +32,9 @@ class VariantType(TypedDict):
     badgeTitle: str
     text: str
 
-
+@XBlock.needs('settings')
+@XBlock.needs('i18n')
+@XBlock.needs('user')
 class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     # Настройки
     loader = ResourceLoader(__name__)
@@ -39,7 +42,7 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     display_name = String(
         display_name=_("Название блока"),
         scope=Scope.settings,
-        default=_("Drag and Drop"),
+        default=_("Open DND XBlock"),
         enforce_type=True,
     )
 
@@ -58,84 +61,36 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     )
 
     weight = Float(
-        display_name=_("Количество баллов"),
-        help=_("Defines the number of points the problem is worth."),
+        display_name="Максимальное количество баллов",
+        default=1.0,
         scope=Scope.settings,
-        default=1,
-        enforce_type=True,
+        values={"min": 0},
     )
 
-    completed = Boolean(
-        help=_("Индикатор было ли задание отвечено хоть раз"),
+    score = Float(
+        display_name="Rоличество баллов",
+        default=0.0,
         scope=Scope.user_state,
-        default=False,
-        enforce_type=True,
+        values={"min": 0},
     )
 
-    raw_earned = Float(
-        help=_("Keeps maximum score achieved by student as a raw value between 0 and 1."),
-        scope=Scope.user_state,
-        default=0,
-        enforce_type=True,
-    )
-
-    raw_possible = Float(
-        help=_("Maximum score available of the problem as a raw value between 0 and 1."),
-        scope=Scope.user_state,
-        default=1,
-        enforce_type=True,
-    )
-
+    has_score = True
     icon_class = 'problem'
 
-    @property
-    def score(self):
-        return Score(self.raw_earned, self.raw_possible)
-    
+    def has_submitted_answer(self):
+        return True
+
     def max_score(self):
-        return 1
-    
+        return self.weight
+
     def get_score(self):
-        if self._get_raw_earned_if_set() is None:
-            self.raw_earned = self._learner_raw_score()
-        return Score(self.raw_earned, self.raw_possible)
-    
+        return Score(raw_earned=self.score, raw_possible=self.weight)
+
     def set_score(self, score):
-        self.raw_earned = score.raw_earned
-        self.raw_possible = score.raw_possible
+        self.score = score.raw_earned
 
     def calculate_score(self):
-        return Score(self._learner_raw_score(), self.max_score())
-    
-    def has_submitted_answer(self):
-        return self.fields['raw_earned'].is_set_on(self)
-    
-    def weighted_grade(self):
-        if self.raw_possible <= 0:
-            return None
-
-        if self.weight is None:
-            return self.raw_earned
-
-        weighted_earned = self.raw_earned * self.weight / self.raw_possible
-        return weighted_earned
-    
-    def publish_grade(self, score=None, only_if_higher=None):
-        if not score:
-            score = self.score
-
-        self._publish_grade(score, only_if_higher)
-        return {'grade': self.score.raw_earned, 'max_grade': self.score.raw_possible}
-    
-    def _learner_raw_score(self):
-        """
-        Calculate raw score for learner submission.
-
-        As it is calculated as ratio of correctly placed (or left in bank in case of decoys) items to
-        total number of items, it lays in interval [0..1]
-        """
-        correct_count, total_count = self._get_item_stats()
-        return correct_count / float(total_count)
+        return Score(raw_earned=self.score, raw_possible=self.weight)
 
     # Настройки задания
 
@@ -186,8 +141,9 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         values=VariantType
     )
     previous_answers = Dict(scope=Scope.user_state, default=None)
+    previous_verdict = Dict(scope=Scope.user_state, default=None)
 
-    editable_fields = ('display_name', 'title', 'description', 'imageUrl', 'max_attempts', 'weight')
+    editable_fields = ('title', 'description', 'imageUrl', 'max_attempts', 'weight', 'areas', 'variants')
 
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -240,10 +196,11 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             else:
                 result[key] = False
 
-        result['score'] = total_correct_answers / len(self.areas)
-        self.set_score(Score(total_correct_answers / len(self.areas), self.max_score()))
-        self.publish_grade()
+        result['score'] = float(round(total_correct_answers / len(self.areas) * self.weight ))
 
+        self.set_score(Score(raw_earned=result['score'], raw_possible=self.weight))
+        self.rescore(only_if_higher=False)
+        self.previous_verdict = result
         self.attempts += 1
 
         return result
@@ -260,7 +217,8 @@ class OpenDNDXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             'variants': self.variants,
             'attempts': self.attempts,
             'max_attempts': self.max_attempts,
-            'previous_answers': self.previous_answers
+            'previous_answers': self.previous_answers,
+            'previous_verdict': self.previous_verdict
         }
 
     # TO-DO: change this to create the scenarios you'd like to see in the
