@@ -2,9 +2,7 @@ from importlib.resources import files
 from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from typing import TypedDict
-from xblock.fields import Integer, Scope, String, List, Float, Dict, Boolean
-from .utils import _
-import json
+from xblock.fields import Integer, Scope, String, List, Float, Dict
 
 try:
     from xblock.utils.publish_event import PublishEventMixin  # pylint: disable=ungrouped-imports
@@ -16,6 +14,10 @@ except ModuleNotFoundError:  # For backward compatibility with releases older th
 from xblock.utils.studio_editable import StudioEditableXBlockMixin
 from xblock.scorable import ScorableXBlockMixin, Score
 
+
+def _(text):
+    """ Dummy `gettext` replacement to make string extraction tools scrape strings marked for translation """
+    return text
 
 class AreaType(TypedDict):
     id: str
