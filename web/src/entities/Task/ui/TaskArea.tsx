@@ -10,7 +10,7 @@ type TaskAreaProps = PropsWithChildren & {
 
 export const TaskArea: FC<TaskAreaProps> = ({ area, children, isError, isGood }) => {
   const styles = {
-    height: area.width,
+    height: area.height,
     width: area.width,
     top: area.y,
     left: area.x,
